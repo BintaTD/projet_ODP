@@ -1,0 +1,44 @@
+---
+# create_container.yml
+# Crée un conteneur pentest isolé pour un utilisateur donné.
+# Usage : ansible-playbook create_container.yml -e "user_id=alice"
+
+- hosts: pentest_host
+  become: true
+
+  vars:
+    ansible_python_interpreter: /opt/ansible-venv/bin/python3
+
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Vérifier qu'un user_id a été fourni
+      fail:
+        msg: "Il faut passer -e 'user_id=<nom>'"
+      when: user_id is not defined
+
+    - name: Créer le réseau Docker isolé (s'il n'existe pas)
+      community.docker.docker_network:
+        name: "{{ docker_network_name }}"
+        state: present
+
+    - name: Créer le conteneur pentest pour l'utilisateur
+      community.docker.docker_container:
+        name: "pentest-{{ user_id }}"
+        image: "{{ docker_image_pentest }}"
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ docker_network_name }}"
+        cpus: "{{ container_cpu_limit }}"
+        memory: "{{ container_memory_limit }}"
+        labels:
+          traefik.enable: "true"
+          traefik.http.routers.pentest-{{ user_id }}.rule: "PathPrefix(`/{{ user_id }}`)"
+          owner: "{{ user_id }}"
+      register: container_result
+
+    - name: Afficher le résultat
+      debug:
+        msg: "Conteneur pentest-{{ user_id }} créé, statut : {{ container_result.container.State.Status }}"

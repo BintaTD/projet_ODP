@@ -1,0 +1,8 @@
+# vars/main.yml
+# Variables globales pour le provisioning et les futurs playbooks Docker
+
+docker_network_name: "pentest_net"
+container_cpu_limit: "1"
+container_memory_limit: "512m"
+docker_image_pentest: "nginx:alpine"
+
