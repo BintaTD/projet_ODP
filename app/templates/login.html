@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="auth-wrapper">
+    <div class="glass-panel auth-panel">
+        <div class="logo">
+            <span class="neon-text">Cyber</span>Lab
+        </div>
+        <p class="subtitle">Connexion à votre espace sécurisé</p>
+
+        <form id="login-form" class="auth-form active">
+            <div class="input-group">
+                <input type="text" id="login-username" placeholder="Identifiant" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="login-password" placeholder="Mot de passe" required>
+            </div>
+            <button type="submit" class="btn btn-glow">Se connecter</button>
+            <div class="error-msg" id="login-error"></div>
+        </form>
+
+        <p class="switch-link">Pas encore inscrit ? <a href="/register-page">Créer un compte</a></p>
+    </div>
+</div>
+{% endblock %}

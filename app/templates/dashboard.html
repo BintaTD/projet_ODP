@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<nav class="navbar glass-panel">
+    <div class="logo"><span class="neon-text">Cyber</span>Lab</div>
+    <div class="user-menu">
+        <span class="user-badge">Connecté en tant que <strong>{{ user.username }}</strong></span>
+        <button id="logout-btn" class="btn btn-outline">Déconnexion</button>
+    </div>
+</nav>
+
+<main class="dashboard-content">
+    <header class="dashboard-header">
+        <h1>Mes Instances de Pentest</h1>
+        <button class="btn btn-glow" id="new-instance-btn">+ Nouvelle Instance</button>
+    </header>
+
+    <div class="glass-panel table-container">
+        <table class="instances-table">
+            <thead>
+                <tr>
+                    <th>Container</th>
+                    <th>Status</th>
+                    <th>Worker</th>
+                    <th>Date de début</th>
+                    <th>Expiration</th>
+                    <th>Accès</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="instances-body">
+                <!-- Rempli par app.js via GET /instances -->
+                <tr><td colspan="7" class="loading-text">Chargement...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<!-- Formulaire de location (POST /rent) -->
+<div class="modal-overlay" id="rent-modal" hidden>
+    <div class="glass-panel modal">
+        <h2>Nouvelle instance</h2>
+        <form id="rent-form" class="rent-form">
+            <label>Distribution
+                <select id="rent-distribution" required></select>
+            </label>
+            <label>CPU (cœurs)
+                <input type="number" id="rent-cpu" min="0.5" max="4" step="0.5" value="1" required>
+            </label>
+            <label>RAM (Mo)
+                <input type="number" id="rent-ram" min="256" max="8192" step="256" value="1024" required>
+            </label>
+            <label>Durée (minutes)
+                <input type="number" id="rent-duration" min="5" max="480" step="5" value="60" required>
+            </label>
+            <div class="error-msg" id="rent-error"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" id="rent-cancel">Annuler</button>
+                <button type="submit" class="btn btn-glow">Louer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
