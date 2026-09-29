@@ -1,0 +1,50 @@
+---
+- name: Créer le dossier des clés apt
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Ajouter la clé GPG officielle de Docker
+  get_url:
+    url: https://download.docker.com/linux/debian/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+- name: Ajouter le dépôt Docker
+  apt_repository:
+    repo: "deb [arch={{ docker_apt_arch }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+    filename: docker
+    state: present
+
+- name: Installer Docker Engine et le plugin Compose
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+
+- name: Configurer le démon Docker
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+  notify: Redémarrer Docker
+
+- name: Démarrer et activer Docker
+  service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Autoriser les utilisateurs listés à utiliser Docker
+  user:
+    name: "{{ item }}"
+    groups: docker
+    append: true
+  loop: "{{ docker_users }}"
+

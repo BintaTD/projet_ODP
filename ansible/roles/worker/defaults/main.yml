@@ -1,0 +1,7 @@
+---
+worker_agent_dir: /opt/odp-agent
+worker_agent_venv: /opt/odp-agent/venv
+worker_agent_python_packages:
+  - docker
+  - requests
+  - psutil

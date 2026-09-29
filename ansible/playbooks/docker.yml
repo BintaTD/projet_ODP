@@ -1,0 +1,8 @@
+---
+# US20 : Docker sur le controller ET sur les workers
+- name: Installer et configurer Docker
+  hosts: all
+  become: true
+  roles:
+    - common
+    - docker

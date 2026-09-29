@@ -1,0 +1,44 @@
+# Infrastructure ODP : 1 controller + 3 workers (US14 à US16)
+# `vagrant up` crée les 4 VM puis lance Ansible une seule fois, quand toutes sont prêtes.
+
+NODES = {
+  "controller" => { ip: "192.168.56.10", memory: 2048, cpus: 2 },
+  "worker1"    => { ip: "192.168.56.11", memory: 1536, cpus: 2 },
+  "worker2"    => { ip: "192.168.56.12", memory: 1536, cpus: 2 },
+  "worker3"    => { ip: "192.168.56.13", memory: 1536, cpus: 2 },
+}
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "debian/bookworm64"   # Debian stable : compatible avec le dépôt Docker officiel
+  config.vm.box_check_update = false
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  NODES.each_with_index do |(name, conf), index|
+    config.vm.define name do |node|
+      node.vm.hostname = name
+      node.vm.network "private_network", ip: conf[:ip]
+
+      # Traefik (port 80 du controller) accessible depuis l'hôte sur http://localhost:8080
+      if name == "controller"
+        node.vm.network "forwarded_port", guest: 80, host: 8080, auto_correct: true
+      end
+
+      node.vm.provider "virtualbox" do |vb|
+        vb.name   = "odp-#{name}"
+        vb.memory = conf[:memory]
+        vb.cpus   = conf[:cpus]
+        vb.gui    = false
+      end
+
+      # Ansible se lance après la dernière VM, sur toutes les machines à la fois
+      if index == NODES.size - 1
+        node.vm.provision "ansible" do |ansible|
+          ansible.playbook       = "../ansible/playbooks/site.yml"
+          ansible.inventory_path = "../ansible/inventory/hosts.ini"
+          ansible.limit          = "all"
+          ansible.config_file    = "../ansible/ansible.cfg"
+        end
+      end
+    end
+  end
+end

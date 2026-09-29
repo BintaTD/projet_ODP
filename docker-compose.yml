@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: odp_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-net
+
+  flask:
+    build: ./app
+    container_name: odp_flask
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    volumes:
+      - /opt/odp/secrets/docker_admin_key:/run/secrets/docker_admin_key:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.flask.rule=PathPrefix(`/`)"
+      - "traefik.http.services.flask.loadbalancer.server.port=5000"
+
+  traefik:
+    image: traefik:v3.1
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8081:8080"   # dashboard port ajusté pour éviter un conflit local
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  postgres_data:

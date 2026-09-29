@@ -1,0 +1,7 @@
+---
+# Préparation des workers (prérequis du futur Worker Agent, F07)
+- name: Préparer les workers
+  hosts: workers
+  become: true
+  roles:
+    - worker

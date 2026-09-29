@@ -1,0 +1,23 @@
+---
+- name: Installer Python (venv et pip)
+  apt:
+    name:
+      - python3
+      - python3-venv
+      - python3-pip
+    state: present
+
+- name: Créer le dossier du Worker Agent
+  file:
+    path: "{{ worker_agent_dir }}"
+    state: directory
+    owner: vagrant
+    group: vagrant
+    mode: "0755"
+
+- name: Installer les dépendances Python de l'agent dans un venv
+  pip:
+    name: "{{ worker_agent_python_packages }}"
+    virtualenv: "{{ worker_agent_venv }}"
+    virtualenv_command: python3 -m venv
+  become_user: vagrant

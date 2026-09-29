@@ -1,0 +1,7 @@
+# ansible/playbooks/docker_remote.yml
+---
+- name: Configurer l'accès Docker distant (Flask -> Workers)
+  hosts: controller:workers
+  become: true
+  roles:
+    - docker_remote

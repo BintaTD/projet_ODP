@@ -1,0 +1,32 @@
+---
+# Déploie la stack (Flask, PostgreSQL, Traefik) sur le controller.
+# Usage : ansible-playbook playbooks/deploy.yml
+# Prérequis : un fichier .env à la racine du projet (jamais dans Git).
+- name: Déployer la stack sur le controller
+  hosts: controller
+  become: true
+  vars:
+    project_dir: /opt/odp
+  tasks:
+    - name: Créer le dossier du projet
+      file:
+        path: "{{ project_dir }}"
+        state: directory
+        mode: "0750"
+
+    - name: Copier docker-compose.yml
+      copy:
+        src: "{{ playbook_dir }}/../../../docker-compose.yml"
+        dest: "{{ project_dir }}/docker-compose.yml"
+        mode: "0640"
+
+    - name: Copier le fichier .env (secrets)
+      copy:
+        src: "{{ playbook_dir }}/../../../.env"
+        dest: "{{ project_dir }}/.env"
+        mode: "0600"
+
+    - name: Démarrer la stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_dir }}"
+        state: present

@@ -1,0 +1,2 @@
+---
+docker_admin_key_path: /opt/odp/secrets/docker_admin_key

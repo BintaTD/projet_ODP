@@ -1,0 +1,25 @@
+---
+- name: Créer le dossier des secrets sur le controller
+  file:
+    path: "{{ docker_admin_key_path | dirname }}"
+    state: directory
+    mode: "0700"
+  when: inventory_hostname == "controller"
+
+- name: Générer la paire de clés SSH pour l'accès Docker distant (une fois, sur le controller)
+  community.crypto.openssh_keypair:
+    path: "{{ docker_admin_key_path }}"
+    type: ed25519
+  when: inventory_hostname == "controller"
+
+- name: Récupérer la clé publique générée
+  slurp:
+    src: "{{ docker_admin_key_path }}.pub"
+  when: inventory_hostname == "controller"
+  register: docker_admin_pubkey
+
+- name: Autoriser cette clé sur chaque worker (utilisateur vagrant, déjà dans le groupe docker)
+  authorized_key:
+    user: vagrant
+    key: "{{ hostvars['controller'].docker_admin_pubkey.content | b64decode }}"
+  when: inventory_hostname in groups['workers']

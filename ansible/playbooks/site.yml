@@ -1,0 +1,7 @@
+---
+# Point d'entrée : configure toute l'infrastructure (US21)
+- import_playbook: docker.yml
+- import_playbook: worker.yml
+- import_playbook: docker.yml
+- import_playbook: worker.yml
+- import_playbook: docker_remote.yml

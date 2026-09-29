@@ -1,4 +1,0 @@
-# requirements.yml
-collections:
-  - name: community.docker
-    version: ">=3.0.0"
