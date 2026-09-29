@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from flask import Flask, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -16,6 +17,12 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///dev.db').replace('postgresql://', 'postgresql+psycopg://')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-default')
+
+    # Sécurité de la session : expiration après X minutes d'inactivité
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=int(os.environ.get('SESSION_LIFETIME_MINUTES', 30)))
+    app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Chaque requête repousse l'expiration
+    app.config['SESSION_COOKIE_HTTPONLY'] = True       # Cookie illisible par JavaScript (protection XSS)
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'      # Cookie non envoyé par les requêtes POST d'autres sites (protection CSRF)
     
     # Initialisation des extensions
     db.init_app(app)

@@ -144,6 +144,7 @@ async function loadInstances() {
 async function stopInstance(id) {
     if (!confirm('Arrêter cette instance ?')) return;
     const res = await fetch(`/instances/${id}/stop`, { method: 'POST' });
+    if (res.status === 401) { window.location.href = '/'; return; }  // Session expirée
     if (!res.ok) {
         const data = await res.json();
         alert(data.message);
@@ -161,6 +162,7 @@ async function openRentModal() {
     document.getElementById('rent-error').innerText = '';
     const select = document.getElementById('rent-distribution');
     const res = await fetch('/distributions');
+    if (res.status === 401) { window.location.href = '/'; return; }  // Session expirée
     const distributions = await res.json();
 
     select.replaceChildren();
@@ -195,6 +197,7 @@ document.getElementById('rent-form')?.addEventListener('submit', async (e) => {
                 duration_minutes: document.getElementById('rent-duration').value
             })
         });
+        if (res.status === 401) { window.location.href = '/'; return; }  // Session expirée
         const data = await res.json();
         if (res.ok) {
             rentModal.hidden = true;

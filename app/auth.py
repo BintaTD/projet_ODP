@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user, login_required, current_user
 from .models import db, User
@@ -41,6 +41,7 @@ def login():
         return jsonify({'message': 'Identifiant ou mot de passe incorrect.'}), 401
         
     # Connecter l'utilisateur (gère la session)
+    session.permanent = True  # Applique PERMANENT_SESSION_LIFETIME : expiration après inactivité
     login_user(user)
     return jsonify({'message': 'Connexion réussie !', 'username': user.username}), 200
 
