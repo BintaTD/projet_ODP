@@ -21,24 +21,6 @@ services:
     networks:
       - app-net
 
-  flask:
-    build: ./app
-    container_name: odp_flask
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-    volumes:
-      - /opt/odp/secrets/docker_admin_key:/run/secrets/docker_admin_key:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - app-net
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.flask.rule=PathPrefix(`/`)"
-      - "traefik.http.services.flask.loadbalancer.server.port=5000"
-
   traefik:
     image: traefik:v3.1
     command:
@@ -53,7 +35,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     networks:
       - app-net
-
+      
 networks:
   app-net:
     driver: bridge

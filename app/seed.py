@@ -13,6 +13,11 @@ DISTRIBUTIONS = [
         'image_tag': 'parrotsec/security',
         'description': 'Distribution orientée sécurité et forensique, plus légère que Kali.',
     },
+    {
+        'name': 'Pentest Debian',
+        'image_tag': 'pentest-image',
+        'description': 'Image de test locale, basée sur Debian, durcie (SSH, isolation, capacités).',
+    },
 ]
 
 

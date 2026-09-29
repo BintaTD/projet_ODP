@@ -131,6 +131,33 @@ def rent():
     db.session.add_all([rental, instance])
     db.session.commit()
 
+    # --- TEST LOCAL uniquement, ne pas pousser ---
+    import docker
+    client = docker.from_env()
+    network = client.networks.create(f"net-user-{current_user.id}-{instance.id}", driver="bridge")
+    host_port = 2300 + instance.id
+
+    container = client.containers.run(
+        image="pentest-image",
+        name=instance.name,
+        network=network.name,
+        ports={"22/tcp": host_port},
+        environment={"SSH_PUBLIC_KEY": open("/Users/macbookair/Desktop/projet_ODP/docker/test_key.pub").read().strip()},
+        mem_limit=f"{instance.ram_limit_mb}m",
+        nano_cpus=int(instance.cpu_limit * 1_000_000_000),
+        cap_drop=["ALL"],
+        cap_add=["SYS_CHROOT", "SETGID", "SETUID", "CHOWN", "AUDIT_WRITE"],
+        read_only=True,
+        tmpfs={"/home/pentest/.ssh": "mode=755", "/run": ""},
+        detach=True,
+    )
+
+    instance.status = 'RUNNING'
+    instance.container_id = container.id
+    instance.port = host_port
+    db.session.commit()
+    # --- fin test local ---
+
     return jsonify(instance_to_dict(instance)), 201
 
 
