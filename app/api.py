@@ -1,8 +1,9 @@
 import secrets
 from datetime import timedelta
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from .models import db, utcnow, Distribution, Worker, Rental, Instance
+from . import provisioner
 
 api = Blueprint('api', __name__)
 
@@ -32,7 +33,8 @@ def instance_to_dict(instance):
         'ram_limit_mb': instance.ram_limit_mb,
         'start_time': iso(instance.rental.start_time),
         'end_time': iso(instance.rental.end_time),
-        'access_url': None,  # Sera rempli quand Traefik sera en place
+        'access_url': (f'http://{instance.worker.ip_address}:{instance.port}'
+                       if instance.port and instance.status == 'RUNNING' else None),
     }
 
 
@@ -131,32 +133,20 @@ def rent():
     db.session.add_all([rental, instance])
     db.session.commit()
 
-    # --- TEST LOCAL uniquement, ne pas pousser ---
-    import docker
-    client = docker.from_env()
-    network = client.networks.create(f"net-user-{current_user.id}-{instance.id}", driver="bridge")
-    host_port = 2300 + instance.id
+    # 5. Création réelle du conteneur sur le Worker choisi (US35-36)
+    try:
+        container_id, host_port = provisioner.create_container(instance)
+    except Exception as exc:
+        current_app.logger.exception('Création du conteneur échouée')
+        instance.status = 'FAILED'   # hors ACTIVE_STATUSES : l'utilisateur n'est pas bloqué
+        rental.status = 'ENDED'
+        db.session.commit()
+        return jsonify({'message': f'Impossible de créer le conteneur : {exc}'}), 502
 
-    container = client.containers.run(
-        image="pentest-image",
-        name=instance.name,
-        network=network.name,
-        ports={"22/tcp": host_port},
-        environment={"SSH_PUBLIC_KEY": open("/Users/macbookair/Desktop/projet_ODP/docker/test_key.pub").read().strip()},
-        mem_limit=f"{instance.ram_limit_mb}m",
-        nano_cpus=int(instance.cpu_limit * 1_000_000_000),
-        cap_drop=["ALL"],
-        cap_add=["SYS_CHROOT", "SETGID", "SETUID", "CHOWN", "AUDIT_WRITE"],
-        read_only=True,
-        tmpfs={"/home/pentest/.ssh": "mode=755", "/run": ""},
-        detach=True,
-    )
-
-    instance.status = 'RUNNING'
-    instance.container_id = container.id
+    instance.container_id = container_id
     instance.port = host_port
+    instance.status = 'RUNNING'
     db.session.commit()
-    # --- fin test local ---
 
     return jsonify(instance_to_dict(instance)), 201
 
@@ -171,6 +161,12 @@ def stop_instance(instance_id):
         return jsonify({'message': 'Instance introuvable.'}), 404
     if instance.status not in ACTIVE_STATUSES:
         return jsonify({'message': 'Cette instance est déjà arrêtée.'}), 409
+
+    try:
+        provisioner.remove_container(instance)
+    except Exception as exc:
+        current_app.logger.exception('Suppression du conteneur échouée')
+        return jsonify({'message': f'Impossible de supprimer le conteneur : {exc}'}), 502
 
     instance.status = 'STOPPED'
     instance.rental.status = 'ENDED'

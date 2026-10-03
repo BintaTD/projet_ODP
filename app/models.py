@@ -67,5 +67,6 @@ class Instance(db.Model):
     
     cpu_limit = db.Column(db.Float, nullable=False)
     ram_limit_mb = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.String(50), default='PENDING') # PENDING, RUNNING, STOPPED, DELETED
+    status = db.Column(db.String(50), default='PENDING') # PENDING, RUNNING, STOPPED, DELETED, ERROR
     port = db.Column(db.Integer, nullable=True)
+    ssh_private_key = db.Column(db.Text, nullable=True)  # Générée à la location, effacée à l'arrêt

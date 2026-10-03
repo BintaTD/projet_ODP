@@ -6,3 +6,6 @@ psycopg[binary]
 SQLAlchemy==2.0.31
 Werkzeug==3.0.3
 python-dotenv==1.0.1
+docker[ssh]>=7.0.0
+cryptography
+gunicorn>=22.0.0

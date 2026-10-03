@@ -1,0 +1,8 @@
+# Config SSH du conteneur Flask pour piloter le Docker des workers (ssh://vagrant@<ip>)
+Host *
+    User vagrant
+    IdentityFile /run/keys/docker_admin_key
+    IdentitiesOnly yes
+    # Lab : on retient la clé du worker à la première connexion (accept-new), sans jamais la remplacer
+    StrictHostKeyChecking accept-new
+    ServerAliveInterval 30

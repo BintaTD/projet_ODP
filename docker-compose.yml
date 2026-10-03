@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
@@ -11,7 +9,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -21,8 +19,35 @@ services:
     networks:
       - app-net
 
+  flask:
+    build: .
+    container_name: odp_flask
+    env_file: .env
+    group_add:
+      - "973"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DOCKER_MODE: remote
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/odp/secrets/docker_admin_key:/run/keys/docker_admin_key:ro
+      - ./scripts/flask_ssh_config:/home/flaskuser/.ssh/config:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      # Ces 4 lignes disent à Traefik : "envoie le trafic ici"
+      - "traefik.enable=true"
+      - "traefik.http.routers.flask.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.flask.entrypoints=web"
+      - "traefik.http.services.flask.loadbalancer.server.port=5000"
+    networks:
+      - app-net
+
   traefik:
-    image: traefik:v3.1
+    image: traefik:v3.6.7
+    container_name: odp_traefik
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
@@ -30,12 +55,13 @@ services:
       - "--entrypoints.web.address=:80"
     ports:
       - "80:80"
-      - "8081:8080"   # dashboard port ajusté pour éviter un conflit local
+      - "127.0.0.1:8081:8080"   # dashboard Traefik
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    restart: unless-stopped
     networks:
       - app-net
-      
+
 networks:
   app-net:
     driver: bridge

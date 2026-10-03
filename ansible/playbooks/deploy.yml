@@ -1,32 +1,83 @@
 ---
-# Déploie la stack (Flask, PostgreSQL, Traefik) sur le controller.
-# Usage : ansible-playbook playbooks/deploy.yml
-# Prérequis : un fichier .env à la racine du projet (jamais dans Git).
+# Déploie la stack (Flask, PostgreSQL, Traefik) sur le controller puis y enregistre les workers.
+# Usage : cd ansible && ansible-playbook playbooks/deploy.yml
+# Prérequis : un fichier .env à la racine du projet (jamais dans Git) et `site.yml` déjà exécuté.
+
+# Les facts des workers (CPU, RAM) servent à les enregistrer dans Flask
+- name: Collecter les informations des workers
+  hosts: workers
+  gather_facts: true
+  tasks:
+    - name: Facts matériels collectés
+      setup:
+        gather_subset: [hardware]
+
 - name: Déployer la stack sur le controller
   hosts: controller
   become: true
   vars:
     project_dir: /opt/odp
+    project_root: "{{ playbook_dir }}/../.."
   tasks:
+    - name: Installer rsync (copie du code)
+      apt:
+        name: rsync
+        state: present
+
     - name: Créer le dossier du projet
       file:
         path: "{{ project_dir }}"
         state: directory
         mode: "0750"
 
-    - name: Copier docker-compose.yml
-      copy:
-        src: "{{ playbook_dir }}/../../../docker-compose.yml"
-        dest: "{{ project_dir }}/docker-compose.yml"
-        mode: "0640"
+    - name: Copier le code (sans secrets, venv ni fichiers locaux)
+      ansible.posix.synchronize:
+        src: "{{ project_root }}/"
+        dest: "{{ project_dir }}/"
+        archive: false
+        recursive: true
+        checksum: true
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=.env"
+          - "--exclude=venv"
+          - "--exclude=__pycache__"
+          - "--exclude=*.pyc"
+          - "--exclude=instance"
+          - "--exclude=vagrant"
+          - "--exclude=ansible"
+      register: code_sync
 
     - name: Copier le fichier .env (secrets)
       copy:
-        src: "{{ playbook_dir }}/../../../.env"
+        src: "{{ project_root }}/.env"
         dest: "{{ project_dir }}/.env"
         mode: "0600"
 
-    - name: Démarrer la stack
+    - name: Démarrer la stack (reconstruit l'image Flask si le code a changé)
       community.docker.docker_compose_v2:
         project_src: "{{ project_dir }}"
+        build: "{{ 'always' if code_sync.changed else 'policy' }}"
         state: present
+
+    - name: Attendre que Flask réponde derrière Traefik
+      uri:
+        url: http://127.0.0.1/health
+      register: flask_health
+      until: flask_health.status == 200
+      retries: 30
+      delay: 5
+
+    # En attendant le Worker Agent (F07) : les workers sont déclarés depuis l'inventaire
+    - name: Enregistrer les workers dans Flask
+      uri:
+        url: http://127.0.0.1/workers/register
+        method: POST
+        body_format: json
+        body:
+          hostname: "{{ item }}"
+          ip_address: "{{ hostvars[item].ansible_host }}"
+          cpu_cores: "{{ hostvars[item].ansible_facts.processor_vcpus }}"
+          ram_mb: "{{ hostvars[item].ansible_facts.memtotal_mb }}"
+        status_code: [200, 201]
+      loop: "{{ groups['workers'] }}"

@@ -1,11 +1,4 @@
 #!/bin/bash
 set -e
-
-mkdir -p /run/sshd
-
-if [ -n "$SSH_PUBLIC_KEY" ]; then
-    echo "$SSH_PUBLIC_KEY" > /home/pentest/.ssh/authorized_keys
-    chmod 644 /home/pentest/.ssh/authorized_keys
-fi
-
-exec /usr/sbin/sshd -D -e
+# Terminal web : un seul client à la fois, en écriture. L'accès passe par Traefik.
+exec ttyd --writable --port 7681 --max-clients 1 bash

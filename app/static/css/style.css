@@ -81,6 +81,9 @@ body {
 .status-pending { color: #ffb800; }
 .status-running { color: var(--success); }
 .status-stopped, .status-deleted { color: var(--text-muted); }
+.status-error { color: var(--danger); }
+.access-cmd { display: block; font-family: monospace; font-size: 0.8rem; user-select: all; word-break: break-all; }
+.access-link { display: inline-block; margin-top: 0.4rem; font-size: 0.8rem; color: var(--primary); }
 .btn-small { padding: 0.4rem 0.9rem; font-size: 0.85rem; }
 .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
 .btn-danger:hover { background: rgba(255, 0, 60, 0.1); }

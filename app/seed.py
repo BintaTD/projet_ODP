@@ -5,7 +5,7 @@ from .models import db, Distribution
 DISTRIBUTIONS = [
     {
         'name': 'Kali Linux',
-        'image_tag': 'kalilinux/kali-rolling',
+        'image_tag': 'pentest-kali',
         'description': 'Distribution de référence pour le pentest (Offensive Security).',
     },
     {
@@ -25,10 +25,14 @@ DISTRIBUTIONS = [
 @with_appcontext
 def seed_command():
     """Ajoute les distributions de base (ne crée pas de doublons)."""
-    added = 0
+    added = updated = 0
     for data in DISTRIBUTIONS:
-        if not Distribution.query.filter_by(name=data['name']).first():
+        dist = Distribution.query.filter_by(name=data['name']).first()
+        if not dist:
             db.session.add(Distribution(**data))
             added += 1
+        elif dist.image_tag != data['image_tag']:
+            dist.image_tag = data['image_tag']  # corrige les bases déjà seedées
+            updated += 1
     db.session.commit()
-    click.echo(f'{added} distribution(s) ajoutée(s).')
+    click.echo(f'{added} distribution(s) ajoutée(s), {updated} mise(s) à jour.')

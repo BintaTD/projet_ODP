@@ -3,13 +3,18 @@
   file:
     path: "{{ docker_admin_key_path | dirname }}"
     state: directory
-    mode: "0700"
+    owner: vagrant
+    group: vagrant
+    mode: "0755"
   when: inventory_hostname == "controller"
 
 - name: Générer la paire de clés SSH pour l'accès Docker distant (une fois, sur le controller)
   community.crypto.openssh_keypair:
     path: "{{ docker_admin_key_path }}"
     type: ed25519
+    owner: vagrant
+    group: vagrant
+    mode: "0600"
   when: inventory_hostname == "controller"
 
 - name: Récupérer la clé publique générée

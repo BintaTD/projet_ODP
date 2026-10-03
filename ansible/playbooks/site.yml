@@ -5,3 +5,5 @@
 - import_playbook: docker.yml
 - import_playbook: worker.yml
 - import_playbook: docker_remote.yml
+- import_playbook: pentest_image.yml
+- import_playbook: deploy.yml

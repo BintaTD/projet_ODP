@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+venv/
+env/
+__pycache__/
+*.pyc
+instance/
+docker/
+vagrant/
+ansible/
+.vagrant/
+.idea/
+.vscode/

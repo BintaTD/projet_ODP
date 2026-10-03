@@ -110,7 +110,17 @@ function renderInstances(instances) {
         tr.appendChild(cell(inst.worker));
         tr.appendChild(cell(formatDate(inst.start_time)));
         tr.appendChild(cell(formatDate(inst.end_time)));
-        tr.appendChild(cell(inst.access_url || 'En attente'));
+        const accessCell = cell(inst.access_url ? '' : 'En attente');
+        if (inst.access_url) {
+            const link = document.createElement('a');
+            link.href = inst.access_url;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.className = 'btn btn-glow btn-small';
+            link.textContent = 'Ouvrir le terminal';
+            accessCell.appendChild(link);
+        }
+        tr.appendChild(accessCell);
 
         const actionCell = document.createElement('td');
         if (inst.status === 'PENDING' || inst.status === 'RUNNING') {
