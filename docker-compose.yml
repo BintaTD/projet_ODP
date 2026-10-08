@@ -12,7 +12,7 @@ services:
       - "127.0.0.1:5432:5432"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -37,7 +37,6 @@ services:
         condition: service_healthy
     restart: unless-stopped
     labels:
-      # Ces 4 lignes disent à Traefik : "envoie le trafic ici"
       - "traefik.enable=true"
       - "traefik.http.routers.flask.rule=PathPrefix(`/`)"
       - "traefik.http.routers.flask.entrypoints=web"
@@ -55,10 +54,31 @@ services:
       - "--entrypoints.web.address=:80"
     ports:
       - "80:80"
-      - "127.0.0.1:8081:8080"   # dashboard Traefik
+      - "127.0.0.1:8081:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     restart: unless-stopped
+    networks:
+      - app-net
+
+  watcher:
+    build: .
+    container_name: odp_watcher
+    command: ["python", "watcher.py"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DOCKER_MODE: remote
+    volumes:
+      - /opt/odp/secrets/docker_admin_key:/run/keys/docker_admin_key:ro
+      - ./scripts/flask_ssh_config:/home/flaskuser/.ssh/config:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health')"]
+      interval: 15s
     networks:
       - app-net
 

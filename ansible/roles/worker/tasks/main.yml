@@ -21,3 +21,21 @@
     virtualenv: "{{ worker_agent_venv }}"
     virtualenv_command: python3 -m venv
   become_user: vagrant
+- name: Copier le script de l'Agent Python
+  copy:
+    src: agent.py
+    dest: /opt/odp-agent/agent.py
+    mode: '0755'
+
+- name: Copier le service systemd de l'Agent
+  copy:
+    src: odp-agent.service
+    dest: /etc/systemd/system/odp-agent.service
+    mode: '0644'
+
+- name: Démarrer et activer le service ODP Agent
+  systemd:
+    name: odp-agent
+    state: restarted
+    enabled: true
+    daemon_reload: true
